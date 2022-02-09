@@ -4,7 +4,6 @@ import os
 import subprocess
 import platform
 import time
-from os.path import expanduser
 from pathlib import Path
 from urllib.request import urlretrieve
 
@@ -17,6 +16,7 @@ from version import __version__
 os_name = platform.system()
 
 latest_release_url = "https://api.github.com/repos/SBBTracker/SBBTracker/releases/latest"
+
 
 def check_updates():
     r = requests.get(latest_release_url)
@@ -61,13 +61,9 @@ class UpdateCheckThread(QThread):
         self.kwargs = kwargs
 
     def run(self):
-        update_available = False
-        release_notes = ""
-        while not update_available:
+        while True:
             update_available, release_notes = check_updates()
             if update_available:
-                break
+                self.github_update.emit(update_available, release_notes)
             time.sleep(7200)  # Check for updates every 2 hours
-        # wait for an update
-        self.github_update.emit(update_available, release_notes)
 

@@ -1,7 +1,6 @@
 import logging
 import math
 import os.path
-import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
@@ -14,7 +13,7 @@ import asset_utils
 import log_parser
 import paths
 from record_parser import STRUCT_ACTION, id_to_action_name
-from paths import sbbtracker_folder, backup_dir, statsfile, stats_format
+from paths import backup_dir, statsfile, stats_format
 
 
 headings = ["Hero", "# Matches", "Avg Place", "Top 4", "Wins", "Net MMR"]
@@ -54,6 +53,11 @@ def adjust_legacy_df(df: pd.DataFrame):
         df = df[stats_columns]
     #  clean up empty timestamps into some old time (that I thought was unix epoch but was off by 3 years lol)
     df['Timestamp'] = df['Timestamp'].replace(r'^\s*$', "1973-01-01", regex=True)
+    #  Grandmother IS Big Bad Wolf
+    df['EndingHero'] = df['EndingHero'].replace('Big Bad Wolf', 'Grandmother')
+    for hero_type in ['StartingHero', 'EndingHero']:
+        # The Sphinx was improperly named for a time
+        df[hero_type] = df[hero_type].replace('Sphinx', 'The Sphinx')
     return df
 
 
@@ -78,7 +82,6 @@ def most_recent_backup_date():
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
     else:
         return "Never"
-
 
 
 class PlayerStats:
@@ -141,6 +144,8 @@ class PlayerStats:
                 and mmr_change and session_id:
             if timestamp is None:
                 timestamp = datetime.now()
+            if ending_hero == "Big Bad Wolf":
+                ending_hero = "Grandmother"
             self.df = self.df.append(
                 {"StartingHero": starting_hero, "EndingHero": ending_hero, "Placement": placement,
                  "Timestamp": timestamp.strftime("%Y-%m-%d"), "+/-MMR": str(mmr_change), "SessionId": session_id},
@@ -159,7 +164,7 @@ class PlayerStats:
             for value in asset_utils.content_id_lookup.values():
                 hero = value['Name']
                 heroid = value['Id']
-                if heroid.startswith("SBB_HERO"):
+                if heroid.startswith("SBB_HERO") and hero != "Big Bad Wolf":
                     bool_df = df[hero_type] == hero
                     total_matches = sum(bool_df)
                     avg = round(df.loc[bool_df, 'Placement'].mean(), 2)

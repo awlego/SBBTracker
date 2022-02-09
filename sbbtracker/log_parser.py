@@ -1,7 +1,6 @@
 import gzip
 import json
 import os
-import platform
 import time
 from collections import defaultdict
 from enum import Enum
@@ -319,7 +318,8 @@ class Action:
             elif self.action_type == EVENT_CONNINFO:
                 self.task = TASK_NEWGAME
                 self.session_id = info['SessionId']
-                self.attrs = ['session_id']
+                self.build_id = info['BuildId']
+                self.attrs = ['session_id', 'build_id']
 
             else:
                 self.task = None
@@ -364,11 +364,9 @@ class SBBPygtail(Pygtail):
 
 def run(queue: Queue, log=logfile):
     inbrawl = False
-    skip_extra_msgs = True
     current_round = None
     current_player_stats = None
     lastupdated = dict()
-    last_player_timestamp = -2
     while True:
         prev_action = None
         ifs = SBBPygtail(filename=str(log), offset_file=offsetfile, every_n=100)
@@ -390,7 +388,7 @@ def run(queue: Queue, log=logfile):
             elif not inbrawl and action.task == TASK_GATHERIDS:
                 inbrawl = True
                 brawldt = dict()
-                character_slots = set()
+                character_slots = defaultdict(set)
                 brawldt[action.player1] = list()
                 brawldt[action.player2] = list()
                 lastupdated[action.player1] = current_round
@@ -398,8 +396,8 @@ def run(queue: Queue, log=logfile):
             elif inbrawl and action.task == TASK_GETROUNDGATHER:
                 if action.zone in ['Spell', 'Treasure', 'Character', 'Hero']:
                     if action.zone == 'Character':
-                        if action.slot not in character_slots:
-                            character_slots.add(action.slot)
+                        if action.slot not in character_slots[action.playerid]:
+                            character_slots[action.playerid].add(action.slot)
                             brawldt[action.playerid].append(action)
                     else:
                         brawldt[action.playerid].append(action)
