@@ -395,6 +395,23 @@ class SettingsCheckbox(QCheckBox):
         self.stateChanged.connect(lambda: settings.toggle(setting))
 
 
+class ArrangementWindow(QMainWindow):
+    def __init__(self, main_window):
+        super().__init__()
+        self.hide()
+        self.setWindowModality(Qt.ApplicationModal)
+        self.main_window = main_window
+        main_widget = QFrame()
+        main_layout = QVBoxLayout(main_widget)
+        overlay_settings = QWidget()
+        overlay_settings_scroll = QScrollArea(widgetResizable=True)
+        overlay_settings_scroll.setWidget(overlay_settings)
+
+
+        self.setWindowIcon(QIcon(asset_utils.get_asset("icon.png")))
+        self.setWindowTitle("SBBTracker Arrangement Analyzer")
+
+
 class SettingsWindow(QMainWindow):
     def __init__(self, main_window):
         super().__init__()
@@ -424,7 +441,6 @@ class SettingsWindow(QMainWindow):
 
         about_layout = QVBoxLayout(about_tab)
         about_layout.addWidget(QLabel(f"""SBBTracker v{version.__version__}
-
 
 SBBBattleSim by:
 reggles44
@@ -497,6 +513,10 @@ and Lunco
         show_tracker_button_checkbox = SettingsCheckbox(settings.show_tracker_button)
         show_tracker_button_checkbox.setEnabled(enable_overlay_checkbox.checkState())
 
+        show_arrangement_button_checkbox = SettingsCheckbox(settings.show_arrangement_button)
+        show_arrangement_button_checkbox.setEnabled(enable_overlay_checkbox.checkState())
+
+
         enable_overlay_checkbox.stateChanged.connect(lambda state: show_tracker_button_checkbox.setEnabled(bool(state)))
 
         enable_comps = SettingsCheckbox(settings.enable_comps)
@@ -535,6 +555,8 @@ and Lunco
         overlay_layout.addRow(QLabel("More threads = faster simulation but takes more computing power"))
         overlay_layout.addRow(QLabel(" "))
         overlay_layout.addRow("Enable \"Show Tracker\" button", show_tracker_button_checkbox)
+        overlay_layout.addRow("Enable \"Arrangement Solver\" button", show_arrangement_button_checkbox)
+
         overlay_layout.addRow("Enable board comps", enable_comps)
         overlay_layout.addRow("Board comps scaling", self.overlay_comps_scaling)
         overlay_layout.addRow("Enable turn display", enable_turn_display)
@@ -632,6 +654,7 @@ and Lunco
         self.main_window.streamer_overlay.set_comps_enabled(settings.get(settings.enable_comps))
         self.main_window.overlay.simulation_stats.setVisible(settings.get(settings.enable_sim))
         self.main_window.overlay.show_button.setVisible(settings.get(settings.show_tracker_button))
+        self.main_window.overlay.show_button.setVisible(settings.get(settings.show_arrangement_button))
         self.main_window.overlay.turn_display.setVisible(settings.get(settings.enable_turn_display))
         self.main_window.export_comp_action.setVisible(settings.get(settings.export_comp_button))
 
@@ -717,6 +740,10 @@ class SBBTracker(QMainWindow):
         layout.addWidget(round_widget)
         layout.addWidget(self.comp_tabs)
 
+        arrangement_widget = QWidget()
+        layout = QVBoxLayout(arrangement_widget)
+        layout.addWidget(round_widget)
+
         self.match_history = MatchHistory(self, self.player_stats)
         self.live_graphs = LiveGraphs()
         self.stats_graph = StatsGraph(self.player_stats)
@@ -726,6 +753,7 @@ class SBBTracker(QMainWindow):
         main_tabs.addTab(self.live_graphs, "Live Graphs")
         main_tabs.addTab(self.match_history, "Match History")
         main_tabs.addTab(self.stats_graph, "Stats Graphs")
+        main_tabs.addTab(arrangement_widget, "Arrangement Analysis")
 
         toolbar = QToolBar(self)
         toolbar.setMinimumHeight(40)
@@ -743,6 +771,11 @@ class SBBTracker(QMainWindow):
         settings_action = QAction(QPixmap(asset_utils.get_asset("icons/settings.png")), "&Settings", self)
         toolbar.insertAction(bug_action, settings_action)
         settings_action.triggered.connect(self.settings_window.show)
+
+        self.arrangement_window = ArrangementWindow(self)
+        settings_action = QAction(QPixmap(asset_utils.get_asset("icons/settings.png")), "&Settings", self)
+        toolbar.insertAction(bug_action, settings_action)
+        settings_action.triggered.connect(self.arrangement_window.show)
 
         self.export_comp_action = QAction(QPixmap(asset_utils.get_asset("icons/file-export.png")),
                                           "&Export last combat", self)
@@ -1454,6 +1487,12 @@ class OverlayWindow(QMainWindow):
         self.show_button.resize(self.show_button.sizeHint().width(), self.show_button.sizeHint().height())
         self.show_button.setVisible(settings.get(settings.show_tracker_button))
 
+        self.optimal_arrangement_button = QPushButton("Show Arrangement Solver", main_widget)
+        self.show_button.clicked.connect(self.show_hide_arrangement_window)
+        self.show_button.move(80, 40)
+        self.show_button.resize(self.show_button.sizeHint().width(), self.show_button.sizeHint().height())
+        self.show_button.setVisible(settings.get(settings.show_arrangement_button))
+
         self.setCentralWidget(main_widget)
 
         self.disable_hovers()
@@ -1466,6 +1505,15 @@ class OverlayWindow(QMainWindow):
             self.main_window.showMinimized()
             self.show_button.setText("Show Tracker")
         self.show_hide = not self.show_hide
+
+    def show_hide_arrangement_window(self):
+        if self.show_hide_arrangement:
+            self.arrangement_window.setWindowState(Qt.WindowState.WindowActive)
+            self.show_button.setText("Hide Arrangement Solver")
+        else:
+            self.arrangement_window.showMinimized()
+            self.show_button.setText("Show Arrangement Solver")
+        self.show_hide_arrangement = not self.show_hide_arrangement
 
     def visible_in_bg(self, visible):
         if settings.get(settings.hide_overlay_in_bg) and settings.get(settings.enable_overlay):

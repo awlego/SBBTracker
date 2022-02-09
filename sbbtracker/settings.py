@@ -3,7 +3,7 @@ import logging
 import shutil
 from tempfile import NamedTemporaryFile
 
-from sbbtracker import paths
+import paths
 
 settings_file = paths.sbbtracker_folder.joinpath("settings.json")
 
@@ -54,6 +54,7 @@ disable_scaling = Setting("disable-scaling", False)
 overlay_comps_scaling = Setting("overlay-comps-scaling", 100)
 hide_overlay_in_bg = Setting("hide-overlay-in-bg", False)
 show_tracker_button = Setting("show-tracker-button", True)
+show_arrangement_button = Setting("show-arrangement-button", True)
 simulator_position = Setting("simulator-position", (0, 0))
 turn_indicator_position = Setting("turn-indicator-position", (0, 0))
 number_simulations = Setting("number-simulations", 1000)
