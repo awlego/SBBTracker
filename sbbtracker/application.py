@@ -740,10 +740,15 @@ class SBBTracker(QMainWindow):
         layout.addWidget(round_widget)
         layout.addWidget(self.comp_tabs)
 
+        self.arrangement_comp_tabs = QTabWidget()
+        for index in range(len(self.comps)):
+            self.arrangement_comp_tabs.addTab(self.comps[index], f"Player{index}")
+
         arrangement_widget = QWidget()
         layout = QVBoxLayout(arrangement_widget)
         layout.addWidget(round_widget)
-        layout.addWidget(BoardComp())
+        layout.addWidget(self.arrangement_comp_tabs)
+
 
         self.match_history = MatchHistory(self, self.player_stats)
         self.live_graphs = LiveGraphs()
