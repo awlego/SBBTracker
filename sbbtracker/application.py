@@ -743,6 +743,7 @@ class SBBTracker(QMainWindow):
         arrangement_widget = QWidget()
         layout = QVBoxLayout(arrangement_widget)
         layout.addWidget(round_widget)
+        layout.addWidget(BoardComp())
 
         self.match_history = MatchHistory(self, self.player_stats)
         self.live_graphs = LiveGraphs()
